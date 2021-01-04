@@ -15,9 +15,7 @@ export class GeoTracks extends React.Component {
       table: {},
       lastUpdated: ''
     };
-    this.animateRealData = this.animateRealData.bind(this);
-    this.createRealDataTable = this.createRealDataTable.bind(this);
-    this.fetchData = this.fetchData.bind(this);
+
   }
 
   animationFrameId = 0;
@@ -27,12 +25,8 @@ export class GeoTracks extends React.Component {
     margin: "50px",
   };
 
-  async fetchData() {
-    return await axios.get('http://localhost:3001/iss');
-  }
-
-  async createRealDataTable() {
-    // const resp = await this.fetchData();
+  createTable = async () => {
+    // const resp = await axios.get('http://localhost:3001/iss');
     try {
       // let results = fromFlux(resp.data.csv);
       let results = { table: geoTracks(-74, 40, 3) }
@@ -44,24 +38,18 @@ export class GeoTracks extends React.Component {
     }
   }
 
-  animateRealData() {
-    this.createRealDataTable();
-  }
-
-  async componentDidMount() {
+  componentDidMount = async () => {
     try {
-      this.createRealDataTable();
-      // this.animationFrameId = window.setInterval(this.animateRealData, REASONABLE_API_REFRESH_RATE);
+      this.createTable();
+      // this.animationFrameId = window.setInterval(this.createTable, REASONABLE_API_REFRESH_RATE);
     } catch (error) {
       console.error(error);
     }
   }
 
-  componentWillUnmount() {
-    window.clearInterval(this.animationFrameId);
-  }
+  componentWillUnmount = () => window.clearInterval(this.animationFrameId);
 
-  renderPlot() {
+  renderPlot = () => {
     const config = {
       table: this.state.table,
       showAxes: false,
@@ -76,7 +64,7 @@ export class GeoTracks extends React.Component {
           layers: [
             {
               type: 'trackMap',
-              speed: 200,
+              speed: 1000,
               trackWidth: 4,
               randomColors: true,
               endStopMarkers: true,
@@ -96,7 +84,7 @@ export class GeoTracks extends React.Component {
     )
   }
 
-  renderEmpty() {
+  renderEmpty = () => {
     return (
       <div style={this.style}>
         <h3>Loading...</h3>
@@ -104,7 +92,5 @@ export class GeoTracks extends React.Component {
     )
   }
 
-  render() {
-    return Object.keys(this.state.table).length > 0 ? this.renderPlot() : this.renderEmpty();
-  }
+  render = () => Object.keys(this.state.table).length > 0 ? this.renderPlot() : this.renderEmpty();
 }

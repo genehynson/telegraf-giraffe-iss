@@ -1,11 +1,14 @@
 import React from 'react'
-import {fromFlux, Plot, NINETEEN_EIGHTY_FOUR, timeFormatter} from '@influxdata/giraffe'
+import {fromFlux, Plot} from '@influxdata/giraffe'
 import axios from 'axios'
-import { findStringColumns } from '../helpers'
+import { geoTracks } from '../helpers/geoLayer'
 
 const REASONABLE_API_REFRESH_RATE = 5000;
+const osmTileServerConfiguration = {
+  tileServerUrl: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+}
 
-export class Band extends React.Component {
+export class GeoTracks extends React.Component {
   constructor(props) {
     super(props)
     this.state = {
@@ -19,20 +22,21 @@ export class Band extends React.Component {
 
   animationFrameId = 0;
   style = {
-    width: "calc(70vw - 20px)",
-    height: "calc(70vh - 20px)",
-    margin: "40px",
+    width: "calc(100vw - 100px)",
+    height: "calc(100vh - 100px)",
+    margin: "50px",
   };
 
   async fetchData() {
-    return await axios.get('http://localhost:3001/cpu/client');
+    return await axios.get('http://localhost:3001/iss');
   }
 
   async createRealDataTable() {
-    const resp = await this.fetchData();
-
+    // const resp = await this.fetchData();
     try {
-      let results = fromFlux(resp.data.csv);
+      // let results = fromFlux(resp.data.csv);
+      let results = { table: geoTracks(-74, 40, 3) }
+      console.log(results)
       let currentDate = new Date();
       this.setState({ table: results.table, lastUpdated: currentDate.toLocaleTimeString() });
     } catch (error) {
@@ -47,7 +51,7 @@ export class Band extends React.Component {
   async componentDidMount() {
     try {
       this.createRealDataTable();
-      this.animationFrameId = window.setInterval(this.animateRealData, REASONABLE_API_REFRESH_RATE);
+      // this.animationFrameId = window.setInterval(this.animateRealData, REASONABLE_API_REFRESH_RATE);
     } catch (error) {
       console.error(error);
     }
@@ -58,45 +62,34 @@ export class Band extends React.Component {
   }
 
   renderPlot() {
-    const fill = findStringColumns(this.state.table)
     const config = {
       table: this.state.table,
+      showAxes: false,
       layers: [
         {
-          type: 'band',
-          x: '_time',
-          y: '_value',
-          fill,
-          colors: NINETEEN_EIGHTY_FOUR,
-          interpolation: "monotoneX",
-          lineWidth: 3,
-          lineOpacity: 0.7,
-          shadeOpacity: 0.3,
-          hoverDimension: "auto",
-          upperColumnName: "max",
-          mainColumnName: "mean",
-          lowerColumnName: "min",
-        }
+          type: 'geo',
+          lat: 40,
+          lon: -74,
+          zoom: 6,
+          allowPanAndZoom: true,
+          detectCoordinateFields: false,
+          layers: [
+            {
+              type: 'trackMap',
+              speed: 200,
+              trackWidth: 4,
+              randomColors: true,
+              endStopMarkers: true,
+              endStopMarkerRadius: 4,
+            },
+          ],
+          tileServerConfiguration: osmTileServerConfiguration,
+        },
       ],
-      valueFormatters: {
-        _time: timeFormatter({
-          timeFormat: "UTC",
-          format: "HH:mm",
-        }),
-        _value: val =>
-          typeof val === 'number'
-            ? `${val.toFixed(2)}%`
-            : val,
-      },
-      xScale: "linear",
-      yScale: "linear",
-      legendFont: "12px sans-serif",
-      tickFont: "12px sans-serif",
-      showAxes: true,
     };
     return (
     <div style={this.style}>
-      <h3>CPU Usage</h3>
+      <h3>ISS Movement</h3>
       <h5>Last Updated: {this.state.lastUpdated}</h5>
       <Plot config={config} />
     </div>

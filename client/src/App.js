@@ -1,10 +1,10 @@
 import './App.css';
-import { Band } from './plotters/band.js'
+import { GeoTracks } from './plotters/geoTracks.js'
 
 function App() {
   // TODO: add menu options to choose from different examples
   return (
-    <Band/>
+    <GeoTracks/>
   );
 }
 

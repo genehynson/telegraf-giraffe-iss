@@ -13,10 +13,12 @@ const bucket = process.env.BUCKET_NAME //export the name of your bucket
 const influxDB = new InfluxDB({ url: baseURL, token: influxToken })
 const queryApi = influxDB.getQueryApi(orgID)
 
-const issQuery = `from(bucket: "iss")
+const issQuery = `import "experimental/geo"
+from(bucket: "iss")
 |> range(start: -24h)
-|> filter(fn: (r) => r["_measurement"] == "iss")
-|> filter(fn: (r) => r["_field"] == "iss_position_latitude" or r["_field"] == "iss_position_longitude")`;
+|> geo.shapeData(latField: "iss_position_latitude", lonField: "iss_position_longitude", level: 5)
+|> geo.groupByArea(newColumn: "geoArea", level: 5)
+|> geo.asTracks(groupBy: ["id"])`;
 
 // start the server
 const app = express();

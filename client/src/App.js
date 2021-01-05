@@ -1,10 +1,9 @@
 import './App.css';
-import { GeoTracks } from './plotters/geoTracks.js'
+import { GeoTracksPlot } from './plotters/geoTracksPlot.js'
 
 function App() {
-  // TODO: add menu options to choose from different examples
   return (
-    <GeoTracks/>
+    <GeoTracksPlot/>
   );
 }
 

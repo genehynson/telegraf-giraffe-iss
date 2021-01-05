@@ -1,10 +1,18 @@
 import React from 'react'
-import {fromFlux, Plot} from '@influxdata/giraffe'
+import {fromFlux, Plot, ClusterAggregation} from '@influxdata/giraffe'
 import axios from 'axios'
 
 const REASONABLE_API_REFRESH_RATE = 20000;
 const osmTileServerConfiguration = {
   tileServerUrl: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+}
+const pointLayer = {
+  type: 'pointMap',
+  isClustered: false,
+  colors: [
+    {type: 'min', hex: '#ffae42'},
+    {type: 'max', hex: '#ffae42'},
+  ],
 }
 
 export class GeoTracksPlot extends React.Component {
@@ -12,7 +20,8 @@ export class GeoTracksPlot extends React.Component {
     super(props)
     this.state = {
       table: {},
-      lastUpdated: ''
+      lastUpdated: '',
+      showPoints: false,
     };
 
   }
@@ -46,6 +55,8 @@ export class GeoTracksPlot extends React.Component {
 
   componentWillUnmount = () => window.clearInterval(this.animationFrameId);
 
+  showPoints = (event) => this.setState({ showPoints: event.target.checked })
+
   renderPlot = () => {
     const config = {
       table: this.state.table,
@@ -72,10 +83,19 @@ export class GeoTracksPlot extends React.Component {
         },
       ],
     };
+    if (this.state.showPoints) {
+      config.layers[0].layers.push(pointLayer)
+    }
     return (
     <div style={this.style}>
       <h3>ISS Movement</h3>
-      <h5>Last Updated: {this.state.lastUpdated}</h5>
+      <h5 style={{ display: 'inline-block'}}>Last Updated: {this.state.lastUpdated}</h5>
+      <label style={{ display: 'inline-block', float: 'right'}}>
+        <h5>
+          Show Points
+          <input type="checkbox" checked={this.state.showPoints} onChange={this.showPoints}/>
+        </h5>
+      </label>
       <Plot config={config} />
     </div>
     )

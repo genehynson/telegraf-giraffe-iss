@@ -16,8 +16,9 @@ const queryApi = influxDB.getQueryApi(orgID)
 const issQuery = `import "experimental/geo"
 from(bucket: "iss")
 |> range(start: -24h)
-|> geo.shapeData(latField: "iss_position_latitude", lonField: "iss_position_longitude", level: 5)
-|> geo.groupByArea(newColumn: "geoArea", level: 5)
+|> aggregateWindow(every: 3m, fn: mean, createEmpty: false)
+|> geo.shapeData(latField: "iss_position_latitude", lonField: "iss_position_longitude", level: 14)
+|> geo.groupByArea(newColumn: "geoArea", level: 14)
 |> geo.asTracks(groupBy: ["id"])`;
 
 // start the server

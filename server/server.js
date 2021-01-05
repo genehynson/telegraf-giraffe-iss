@@ -14,15 +14,16 @@ const influxDB = new InfluxDB({ url: baseURL, token: influxToken })
 const queryApi = influxDB.getQueryApi(orgID)
 
 const issQuery = `from(bucket: "iss")
-|> range(start: 2019-01-01T00:00:00Z, stop: 2019-01-02T23:59:59Z)
-|> filter(fn: (r) => r._measurement == "migration")`;
+|> range(start: -24h)
+|> filter(fn: (r) => r["_measurement"] == "iss")
+|> filter(fn: (r) => r["_field"] == "iss_position_latitude" or r["_field"] == "iss_position_longitude")`;
 
 // start the server
 const app = express();
 app.use(cors())
 const port = 3001;
 
-app.get('/iss', (req, res) => {
+app.get('/iss', (_, res) => {
   let csv = ''
   let clientQuery = flux``+issQuery
   queryApi.queryLines(clientQuery, {

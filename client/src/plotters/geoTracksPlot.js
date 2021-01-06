@@ -1,5 +1,5 @@
 import React from 'react'
-import {fromFlux, Plot, ClusterAggregation} from '@influxdata/giraffe'
+import {fromFlux, Plot} from '@influxdata/giraffe'
 import axios from 'axios'
 
 const REASONABLE_API_REFRESH_RATE = 20000;
@@ -22,6 +22,8 @@ export class GeoTracksPlot extends React.Component {
       table: {},
       lastUpdated: '',
       showPoints: false,
+      currentOrHistory: 'current',
+      historyMin: 93
     };
 
   }
@@ -29,12 +31,17 @@ export class GeoTracksPlot extends React.Component {
   animationFrameId = 0;
   style = {
     width: "calc(100vw - 100px)",
-    height: "calc(90vh - 90px)",
+    height: "calc(100vh - 100px)",
     margin: "50px",
   };
+  menuStyle = {
+    display: 'inline-block',
+    float: 'right',
+    margin: '0px 20px 0px 0px'
+  };
 
-  createTable = async () => {
-    const resp = await axios.get('http://localhost:3001/iss');
+  createTable = async (currentOrHistory) => {
+    const resp = await axios.get(`http://localhost:3001/iss/${currentOrHistory}?min=${this.state.historyMin}`);
     try {
       let results = fromFlux(resp.data.csv);
       let currentDate = new Date();
@@ -46,8 +53,8 @@ export class GeoTracksPlot extends React.Component {
 
   componentDidMount = async () => {
     try {
-      this.createTable();
-      this.animationFrameId = window.setInterval(this.createTable, REASONABLE_API_REFRESH_RATE);
+      this.createTable(this.state.currentOrHistory);
+      this.animationFrameId = window.setInterval(() => this.createTable(this.state.currentOrHistory), REASONABLE_API_REFRESH_RATE);
     } catch (error) {
       console.error(error);
     }
@@ -55,7 +62,16 @@ export class GeoTracksPlot extends React.Component {
 
   componentWillUnmount = () => window.clearInterval(this.animationFrameId);
 
-  showPoints = (event) => this.setState({ showPoints: event.target.checked })
+  showPoints = (event) => this.setState({ showPoints: event.target.checked });
+
+  changeCurrentOrHistory = (event) => {
+    this.setState({ currentOrHistory: event.target.value });
+    this.createTable(event.target.value);
+  }
+
+  changeHistoryMin = (event) => {
+    this.setState({ historyMin: event.target.value });
+  }
 
   renderPlot = () => {
     const config = {
@@ -66,7 +82,7 @@ export class GeoTracksPlot extends React.Component {
           type: 'geo',
           lat: 0,
           lon: 0,
-          zoom: 2,
+          zoom: 1,
           allowPanAndZoom: true,
           detectCoordinateFields: false,
           layers: [
@@ -89,13 +105,19 @@ export class GeoTracksPlot extends React.Component {
     return (
     <div style={this.style}>
       <h3>ISS Movement</h3>
-      <h5 style={{ display: 'inline-block'}}>Last Updated: {this.state.lastUpdated}</h5>
-      <label style={{ display: 'inline-block', float: 'right'}}>
-        <h5>
-          Show Points
-          <input type="checkbox" checked={this.state.showPoints} onChange={this.showPoints}/>
-        </h5>
-      </label>
+      <h5 style={{ display: 'inline-block', margin: '5px'}}>Last Updated: {this.state.lastUpdated}</h5>
+      <h5 style={this.menuStyle}>
+        <input type="checkbox" checked={this.state.showPoints} onChange={this.showPoints}/> Show Points
+      </h5>
+      {this.state.currentOrHistory === "history" &&
+      <h5 style={this.menuStyle}>
+        <input value={this.state.historyMin} onBlur={() => this.createTable(this.state.currentOrHistory)} onChange={this.changeHistoryMin}/> Min Back
+      </h5>
+      }
+      <h5 style={this.menuStyle}>
+        <input type="radio" value="current" name="currentOrHistory" checked={this.state.currentOrHistory === 'current'} onChange={this.changeCurrentOrHistory}/> Current
+        <input type="radio" value="history" name="currentOrHistory" checked={this.state.currentOrHistory === 'history'} onChange={this.changeCurrentOrHistory}/> Historical
+      </h5>
       <Plot config={config} />
     </div>
     )

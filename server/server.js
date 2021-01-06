@@ -13,22 +13,59 @@ const bucket = process.env.BUCKET_NAME //export the name of your bucket
 const influxDB = new InfluxDB({ url: baseURL, token: influxToken })
 const queryApi = influxDB.getQueryApi(orgID)
 
-const issQuery = `import "experimental/geo"
-from(bucket: "iss")
-|> range(start: -24h)
-|> aggregateWindow(every: 3m, fn: mean, createEmpty: false)
-|> geo.shapeData(latField: "iss_position_latitude", lonField: "iss_position_longitude", level: 14)
-|> geo.groupByArea(newColumn: "geoArea", level: 14)
-|> geo.asTracks(groupBy: ["id"])`;
-
 // start the server
 const app = express();
 app.use(cors())
 const port = 3001;
 
-app.get('/iss', (_, res) => {
+// returns historical data as a single track. Minutes are taken as a parameter
+app.get('/iss/history', (req, res) => {
   let csv = ''
-  let clientQuery = flux``+issQuery
+  const issHistoryQuery = `
+  import "experimental/geo"
+  from(bucket: "iss")
+  |> range(start: -${req.query.min}m)
+  |> aggregateWindow(every: 3m, fn: min, createEmpty: false)
+  |> geo.shapeData(latField: "iss_position_latitude", lonField: "iss_position_longitude", level: 14)
+  |> geo.asTracks()`;
+  let clientQuery = flux``+issHistoryQuery
+  queryApi.queryLines(clientQuery, {
+    next(line) {
+      csv = `${csv}${line}\n`;
+    },
+    error(error) {
+      console.error(error)
+      console.log('\nFinished /iss ERROR')
+      res.end()
+    },
+    complete() {
+      console.log('\nFinished /iss SUCCESS')
+      res.end(JSON.stringify({ csv }))
+    },
+  })
+})
+
+// returns the current orbit from West to East as a single track.
+app.get('/iss/current', (_, res) => {
+  let csv = ''
+  const issCurrentQuery = `
+  import "experimental/geo"
+  currentPos = from(bucket: "iss")
+  |> range(start: -1m)
+  |> filter(fn: (r) => r._field == "iss_position_longitude")
+  |> tail(n: 1)
+  |> findRecord(
+    fn: (key) => true,
+    idx: 0
+  )
+
+  from(bucket: "iss")
+  |> range(start: -93m)
+  |> aggregateWindow(every: 3m, fn: min, createEmpty: false)
+  |> geo.shapeData(latField: "iss_position_latitude", lonField: "iss_position_longitude", level: 14)
+  |> filter(fn: (r) => r.lon <= currentPos._value)
+  |> geo.asTracks()`
+  let clientQuery = flux``+issCurrentQuery
   queryApi.queryLines(clientQuery, {
     next(line) {
       csv = `${csv}${line}\n`;

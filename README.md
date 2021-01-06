@@ -58,7 +58,7 @@ The server has two API endpoints. One for retrieving the *current* orbit of the 
 
 The UI uses the Influx Giraffe library to render a `geo` plot with two layers: `trackMap` and `pointMap`. The track map renders the dashed line and the point map renders the markers. You can toggle between the two API endpoints using the radio buttons in the top left. If you select the "Historical" option, you can provide a value for the `min` parameter. 
 
-![iss](images/iss.png "ISS")
+![iss](images/iss.gif "ISS")
 
 *Note: There is a bug in Giraffe that renders these awkward horizontal lines when the track data wraps. See https://github.com/influxdata/giraffe/issues/442*
 
